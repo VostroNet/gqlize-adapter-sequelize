@@ -74,6 +74,7 @@ export default class SequelizeAdapter {
     return fieldNames.reduce((fields, key) => {
       const attr = Model.rawAttributes[key];
       const autoPopulated = attr.autoIncrement === true ||
+        !(!attr.defaultValue) ||
         !(!Model._dataTypeChanges[key]); //eslint-disable-line
       const allowNull = attr.allowNull === true;
       const foreignKey = !(!attr.references);

@@ -223,7 +223,11 @@ test("adapter - getFields - primary key", async() => {
   });
   const itemDef = {
     name: "Item",
-    define: {},
+    define: {
+      id: {type: Sequelize.UUID, allowNull: false, unique: true, primaryKey: true,
+        defaultValue: Sequelize.UUIDV4,
+      },
+    },
     relationships: [],
   };
   await adapter.createModel(itemDef);
@@ -234,7 +238,7 @@ test("adapter - getFields - primary key", async() => {
   expect(ItemFields.id.primaryKey).toEqual(true);
   expect(ItemFields.id.autoPopulated).toEqual(true);
   expect(ItemFields.id.allowNull).toEqual(false);
-  expect(ItemFields.id.type).toBeInstanceOf(Sequelize.INTEGER);
+  expect(ItemFields.id.type).toBeInstanceOf(Sequelize.UUID);
 });
 
 test("adapter - getFields - define field", async() => {
