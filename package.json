@@ -50,7 +50,6 @@
     "uuid": "^3.3.2"
   },
   "peerDependencies": {
-    "gqlize": "^4.0.0-alpha1",
     "graphql-relay": "^0.6.0",
     "graphql-sequelize": "^9.3.6",
     "sequelize": "^5.8.6",

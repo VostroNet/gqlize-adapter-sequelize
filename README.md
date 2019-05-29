@@ -16,6 +16,8 @@ This repository generally is covered by GPL-3.0 unless specified
 ## TODO
 - Setup Documentation
 - phase out the remaining imports of graphql-sequelize
+- change where/filter object for sequelize adapter to typed object 
+- implement includes
 - Write more unit tests
 
 ## Contributers
