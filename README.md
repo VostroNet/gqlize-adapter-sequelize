@@ -18,6 +18,7 @@ This repository generally is covered by GPL-3.0 unless specified
 - phase out the remaining imports of graphql-sequelize
 - change where/filter object for sequelize adapter to typed object 
 - implement includes
+- test if model has a defaultValue is a 0 value, it sets the field as autoPopulated
 - Write more unit tests
 
 ## Contributers
