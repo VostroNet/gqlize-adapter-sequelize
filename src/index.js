@@ -237,9 +237,10 @@ export default class SequelizeAdapter {
     }
     return fullCount;
   }
-  processListArgsToOptions = async(defName, args, info, whereOperators, defaultOptions = {}, selectedFields) => {
+  processListArgsToOptions = async(defName, args, offset, info, whereOperators, defaultOptions = {}, selectedFields) => {
     let limit, order, attributes = defaultOptions.attributes || [], where;
     // const Model = this.getModel(defName);
+
     if (args.first || args.last) {
       limit = parseInt(args.first || args.last, 10);
     }
@@ -288,6 +289,7 @@ export default class SequelizeAdapter {
         order,
         where,
         limit,
+        offset,
         attributes: unique(attributes),
       }, defaultOptions),
       countOptions: !(this.hasInlineCountFeature()) ? Object.assign({
