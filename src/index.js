@@ -134,16 +134,15 @@ export default class SequelizeAdapter {
   createModel = async(def, hooks) => {
     const {defaultAttr, defaultModel} = this.options;
     const newDef = Object.assign({}, def, {
-      options: Object.assign({}, def.options, {
+      options: Object.assign({}, defaultModel, def.options, {
         hooks,
       }),
     });
-    let schemaOptions = Object.assign({}, defaultModel, def.options);
     // const hooks = [this.options.hooks || {}, schemaOptions.hooks || {}];
     // schemaOptions = Object.assign(schemaOptions, {
     //   hooks: generateHooks(hooks, def.name),
     // });
-    this.sequelize.define(newDef.name, Object.assign({}, defaultAttr, newDef.define), schemaOptions);
+    this.sequelize.define(newDef.name, Object.assign({}, defaultAttr, newDef.define), newDef.options);
 
     let {classMethods, instanceMethods} = newDef;
     if (newDef.options) {
