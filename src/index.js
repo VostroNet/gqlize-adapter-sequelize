@@ -344,7 +344,7 @@ export default class SequelizeAdapter {
   getDeleteFunction = (defName, whereOperators) => {
     const Model = this.sequelize.models[defName];
     return async(where, options, before, after) => {
-      const items = Model.findAll({
+      const items = await Model.findAll({
         where: await this.processFilterArgument(where, whereOperators),
         ...options,
       });

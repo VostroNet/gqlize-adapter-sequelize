@@ -686,3 +686,27 @@ test("adapter - getTypeMapper", async() => {
   expect(typeMapper).toBeDefined();
   expect(typeMapper).toBeInstanceOf(Function);
 });
+
+test("adapter - deleteFunction", async() => {
+  const adapter = new SequelizeAdapter({}, {
+    dialect: "sqlite",
+  });
+  await adapter.createModel(TaskModel);
+  await adapter.reset();
+  const Task = adapter.getModel("Task");
+  const task = await Task.create({
+    name: "ttttttttttttttt",
+  });
+
+  const func = await adapter.getDeleteFunction("Task", null);
+  const proxyFunc = await func({}, {}, (i) => i, (i) => i);
+  // const result = await proxyFunc();
+  // expect(result).not.toBeUndefined();
+  // expect(result).toHaveLength(1);
+  // expect(result[0].id).toEqual(task.id);
+  const result = await Task.findAll({
+    where: {},
+  });
+  expect(result).toBeDefined();
+  expect(result).toHaveLength(0);
+});
