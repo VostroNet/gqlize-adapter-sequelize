@@ -253,14 +253,19 @@ export default class SequelizeAdapter {
         const field = fields[key];
         if (!field.primaryKey) {
           if (selectedFields) {
+            const fieldForeignTarget = field.foreignTarget ? field.foreignTarget.toLowerCase() : undefined;
             if (selectedFields.indexOf(key) === -1) {
-              return;
+              if (fieldForeignTarget === undefined) {
+                return;
+              }
+              if (fieldForeignTarget !== selectedFields[selectedFields.indexOf(fieldForeignTarget)]) {
+                return;
+              }
             }
           }
           attributes.unshift(field.name);
         }
       });
-      // const fieldAttr
 
       attributes.unshift(this.getPrimaryKeyNameForModel(defName));
 
