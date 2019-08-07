@@ -1,6 +1,6 @@
 {
   "name": "@vostro/gqlize-adapter-sequelize",
-  "version": "4.0.0-alpha7",
+  "version": "4.0.0-alpha8",
   "description": "Sequelize adapter for the data binding library - gqlize",
   "main": "lib/index.js",
   "scripts": {
@@ -18,44 +18,44 @@
     "npm": "3.x || 4.x || 5.x"
   },
   "devDependencies": {
-    "@babel/core": "^7.4.4",
-    "@babel/plugin-proposal-object-rest-spread": "^7.4.4",
-    "@babel/plugin-proposal-class-properties": "^7.4.4",
-    "@babel/preset-env": "^7.4.4",
-    "@babel/register": "^7.4.4",
-    "@types/jest": "^24.0.13",
-    "@vostro/graphql-types": "^1.0.0",
-    "apollo-server-express": "^2.5.0",
-    "babel-eslint": "^10.0.1",
+    "@babel/core": "^7.5.5",
+    "@babel/plugin-proposal-class-properties": "^7.5.5",
+    "@babel/plugin-proposal-object-rest-spread": "^7.5.5",
+    "@babel/preset-env": "^7.5.5",
+    "@babel/register": "^7.5.5",
+    "@types/jest": "^24.0.17",
+    "@vostro/graphql-types": "^1.1.0",
+    "apollo-server-express": "^2.8.1",
+    "babel-eslint": "^10.0.2",
     "body-parser": "^1.19.0",
     "deep-freeze": "0.0.1",
-    "del": "^4.1.1",
-    "eslint": "^5.16.0",
-    "eslint-plugin-jest": "^22.5.1",
-    "graphql": "^14.3.0",
+    "del": "^5.0.0",
+    "eslint": "^6.1.0",
+    "eslint-plugin-jest": "^22.14.1",
+    "graphql": "^14.4.2",
     "graphql-relay": "^0.6.0",
     "graphql-sequelize": "^9.3.6",
     "graphql-subscriptions": "^1.1.0",
     "gulp": "^4.0.2",
     "gulp-babel": "^8.0.0",
-    "gulp-eslint": "^5.0.0",
+    "gulp-eslint": "^6.0.0",
     "gulp-jest": "^4.0.2",
     "gulp-jsdoc3": "^2.0.0",
     "gulp-sourcemaps": "^2.6.5",
     "jest": "^24.8.0",
     "jest-cli": "^24.8.0",
-    "sequelize": "^5.8.6",
-    "source-map-support": "^0.5.12",
+    "sequelize": "^5.12.3",
+    "source-map-support": "^0.5.13",
     "sqlite": "^3.0.3",
     "uuid": "^3.3.2"
   },
   "peerDependencies": {
     "graphql-relay": "^0.6.0",
     "graphql-sequelize": "^9.3.6",
-    "sequelize": "^5.8.6",
-    "@vostro/graphql-types": "^1.0.0"
+    "sequelize": "^5.12.3",
+    "@vostro/graphql-types": "^1.1.0"
   },
   "dependencies": {
-    "core-js": "^3.0.1"
+    "core-js": "^3.1.4"
   }
 }

@@ -5,8 +5,11 @@ import typeMapper from "./type-mapper";
 import {replaceDefWhereOperators} from "./utils/replace-id-deep";
 const log = logger("gqlize::adapter::sequelize::");
 
-import jsonType from "@vostro/graphql-types/lib/json";
+// import jsonType from "@vostro/graphql-types/lib/json";
+import createQueryType from "@vostro/graphql-types/lib/query";
 import { replaceWhereOperators } from "graphql-sequelize/lib/replaceWhereOperators";
+import {GraphQLBoolean, GraphQLID} from "graphql";
+
 
 // function formatObject(input) {
 //   return Object.keys(input).reduce((o, y) => {
@@ -56,7 +59,7 @@ export default class SequelizeAdapter {
   getModels = () => {
     return this.sequelize.models;
   }
-  getTypeMapper() {
+  getTypeMapper = () => {
     return typeMapper;
   }
   // getAccessors() {
@@ -163,7 +166,46 @@ export default class SequelizeAdapter {
         this.sequelize.models[newDef.name].prototype[instanceMethod] = instanceMethods[instanceMethod];
       });
     }
+    const queryConfig = this.createQueryConfig(newDef);
+    this.sequelize.models[newDef.name].queryType = createQueryType(queryConfig);
     return this.sequelize.models[newDef.name];
+  }
+  createQueryConfig = (definition) => {
+    const fields = this.getFields(definition.name);
+    let f = Object.keys(fields).reduce((o, k) => {
+      const field = fields[k];
+      if (field.primaryKey || field.foreignKey) {
+        o[k] = GraphQLID;
+      } else {
+        o[k] = this.getTypeMapper()(field.type, `GQLTWhere${definition.name}`, k);
+      }
+      return o;
+    }, {});
+    let iso = {};
+    if (definition.whereOperators) {
+      iso = Object.keys(definition.whereOperators).reduce((o, k) => {
+        if ((definition.whereOperatorTypes || {})[k]) {
+          o[k] = definition.whereOperatorTypes[k];
+        } else {
+          o[k] = GraphQLBoolean;
+        }
+        return o;
+      }, iso);
+    }
+    return {
+      modelName: definition.name,
+      fields: f,
+      isolatedFields: iso,
+      valueFuncs: ["eq", "ne", "gte", "lte", "lt", "not", "is", "like",
+        "notLike", "iLike", "notILike", "startsWith", "endsWith", "substring",
+        "regexp", "notRegexp", "iRegexp", "notIRegexp",
+      ],
+      arrayFuncs: ["or", "and", "any", "all"],
+      arrayValues: ["in", "notIn", "contains", "contained",
+        "between", "notBetween", "overlap", "adjacent", "strictLeft",
+        "strictRight", "noExtendRight", "noExtendLeft",
+      ],
+    };
   }
   createRelationship = (targetModel, sourceModel, name, type, options = {}) => {
     let model = this.sequelize.models[targetModel];
@@ -211,13 +253,13 @@ export default class SequelizeAdapter {
   getValueFromInstance(data, keyName) {
     return data.get(keyName);
   }
-  getFilterGraphQLType() {
-    return jsonType;
+  getFilterGraphQLType = (defName, definition) => {
+    return this.sequelize.models[defName].queryType;
   }
-  getDefaultListArgs() {
+  getDefaultListArgs = (defName, definition) => {
     return {
       where: {
-        type: jsonType,
+        type: this.sequelize.models[defName].queryType,
       },
     };
   }

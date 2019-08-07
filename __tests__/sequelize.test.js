@@ -513,10 +513,23 @@ test("adapter - getDefaultListArgs", async() => {
   const adapter = new SequelizeAdapter({}, {
     dialect: "sqlite",
   });
-  const defaultArgs = adapter.getDefaultListArgs();
+  const itemDef = {
+    name: "Item",
+    define: {
+      "name": {
+        type: Sequelize.STRING,
+        comment: "This is the name!",
+        defaultValue: "test",
+        allowNull: false,
+      },
+    },
+    relationships: [],
+  };
+  await adapter.createModel(itemDef);
+  const defaultArgs = adapter.getDefaultListArgs(itemDef.name, itemDef);
   expect(defaultArgs).toBeDefined();
   expect(defaultArgs.where).toBeDefined();
-  expect(defaultArgs.where.type).toEqual(jsonType);
+  expect(defaultArgs.where.type).toEqual(adapter.sequelize.models[itemDef.name].queryType);
 });
 
 test("adapter - hasInlineCountFeature - sqlite", async() => {
@@ -587,7 +600,7 @@ test("adapter - processListArgsToOptions - hasInlineCount - full_count args alre
   const itemDef = {
     name: "Item",
     define: {},
-    relationships: []
+    relationships: [],
   };
 
   await adapter.createModel(itemDef);
