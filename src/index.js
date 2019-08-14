@@ -166,8 +166,6 @@ export default class SequelizeAdapter {
         this.sequelize.models[newDef.name].prototype[instanceMethod] = instanceMethods[instanceMethod];
       });
     }
-    const queryConfig = this.createQueryConfig(newDef);
-    this.sequelize.models[newDef.name].queryType = createQueryType(queryConfig);
     return this.sequelize.models[newDef.name];
   }
   createQueryConfig = (definition) => {
@@ -181,6 +179,17 @@ export default class SequelizeAdapter {
       }
       return o;
     }, {});
+    const rels = this.getRelationships(definition.name);
+    f = Object.keys(rels).reduce((o, k) => {
+      const field = rels[k];
+      switch (field.associationType) {
+        case "belongsTo":
+          o[field.foreignKey] = GraphQLID;
+          break;
+      }
+      return o;
+    }, f);
+
     let iso = {};
     if (definition.whereOperators) {
       iso = Object.keys(definition.whereOperators).reduce((o, k) => {
@@ -248,15 +257,27 @@ export default class SequelizeAdapter {
     };
   }
   getPrimaryKeyNameForModel = (modelName) => {
-    return this.sequelize.models[modelName].primaryKeyAttribute;
+    const model = this.sequelize.models[modelName];
+    if ((model.primaryKeyAttributes || []).length > 0) {
+      return model.primaryKeyAttributes;
+    }
+    return [this.sequelize.models[modelName].primaryKeyAttribute];
   }
   getValueFromInstance(data, keyName) {
     return data.get(keyName);
   }
   getFilterGraphQLType = (defName, definition) => {
+    if (!this.sequelize.models[defName].queryType) {
+      const queryConfig = this.createQueryConfig(definition);
+      this.sequelize.models[defName].queryType = createQueryType(queryConfig);
+    }
     return this.sequelize.models[defName].queryType;
   }
   getDefaultListArgs = (defName, definition) => {
+    if (!this.sequelize.models[defName].queryType) {
+      const queryConfig = this.createQueryConfig(definition);
+      this.sequelize.models[defName].queryType = createQueryType(queryConfig);
+    }
     return {
       where: {
         type: this.sequelize.models[defName].queryType,
@@ -308,9 +329,9 @@ export default class SequelizeAdapter {
           attributes.unshift(field.name);
         }
       });
-
-      attributes.unshift(this.getPrimaryKeyNameForModel(defName));
-
+      this.getPrimaryKeyNameForModel(defName).forEach((key) => {
+        attributes.unshift(key);
+      });
       // attributes.push(...this.getFields(defName).filter((f) => !f.primaryKey).map((f) => f.name))
       if (attributes.filter((a) => a.indexOf("full_count") > -1).length === 0) {
         if (this.sequelize.dialect.name === "postgres") {

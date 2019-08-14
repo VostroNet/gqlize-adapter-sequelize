@@ -201,7 +201,7 @@ test("adapter - getPrimaryKeyNameForModel", async() => {
   await adapter.createModel(TaskModel);
   await adapter.reset();
   const primaryKeyName = adapter.getPrimaryKeyNameForModel("Task");
-  expect(primaryKeyName).toEqual("id");
+  expect(primaryKeyName[0]).toEqual("id");
 });
 test("adapter - getValueFromInstance", async() => {
   const adapter = new SequelizeAdapter({}, {
