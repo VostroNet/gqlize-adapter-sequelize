@@ -527,5 +527,10 @@ export function mergeFilterStatement(fieldName, value, match = true, originalWhe
 
 
 function isFunction(functionToCheck) {
-  return (functionToCheck && {}.toString.call(functionToCheck) === "[object Function]");
+  if (functionToCheck) {
+    const type = {}.toString.call(functionToCheck);
+    return (type === "[object Function]" || type === "[object AsyncFunction]");
+  }
+  return false;
 }
+
