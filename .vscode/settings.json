@@ -7,5 +7,7 @@
     // Insert spaces when pressing Tab.
     "editor.insertSpaces": true,
     "files.eol": "\n",
-
+    "jest.runAllTestsFirst": false,
+    "jest.autoEnable": false,
+    "jest.showCoverageOnLoad": false
 }

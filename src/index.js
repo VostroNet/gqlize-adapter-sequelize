@@ -36,12 +36,21 @@ export default class SequelizeAdapter {
     //allows the adaptor to have the same config options as sequelize
     this.sequelize = new (Function.prototype.bind.apply(Sequelize, [undefined].concat(config))); //eslint-disable-line
     this.options = adapterOptions;
+    // this.startupScript;
   }
   initialise = async() => {
-    return this.sequelize.sync();
+    await this.sequelize.sync();
+    if (this.startupScript) {
+      await this.sequelize.query(this.startupScript, {
+        raw: true,
+      });
+    }
   }
   reset = async() => {
-    return this.sequelize.sync({force: true});
+    await this.sequelize.sync({force: true});
+    if (this.startupScript) {
+      await this.sequelize.query(this.startupScript);
+    }
   }
   getORM = () => {
     return this.sequelize;
@@ -157,9 +166,13 @@ export default class SequelizeAdapter {
       }
     }
     if (classMethods) {
-      Object.keys(classMethods).forEach((classMethod) => {
-        this.sequelize.models[newDef.name][classMethod] = classMethods[classMethod];
-      });
+      await Promise.all(Object.keys(classMethods).map(async(classMethod) => {
+        if (isFunction(classMethods[classMethod])) {
+          this.sequelize.models[newDef.name][classMethod] = classMethods[classMethod];
+        } else {
+          this.sequelize.models[newDef.name][classMethod] = await this.createStoredProcedure(classMethods[classMethod]);
+        }
+      }));
     }
     if (instanceMethods) {
       Object.keys(instanceMethods).forEach((instanceMethod) => {
@@ -167,6 +180,32 @@ export default class SequelizeAdapter {
       });
     }
     return this.sequelize.models[newDef.name];
+  }
+  createStoredProcedure = async(storedProc) => {
+    // PostgreSQL supported only atm?
+    let {schema = "public", functionName, create, select, modelName, args = []} = storedProc;
+
+    if (!select) {
+      select = `SELECT "${schema}"."${functionName}"(${args.map((s) => `:${s}`, "").join(",")});`;
+    }
+    if (create) {
+      if (!this.startupScript) {
+        this.startupScript = "";
+      }
+      this.startupScript += `${create}\n`;
+    }
+    return (args, context) => {
+
+      // security check?
+      let opts = {
+        replacements: args,
+        type: Sequelize.QueryTypes.SELECT,
+      };
+      if (modelName) {
+        opts.model = this.sequelize.models[modelName];
+      }
+      return this.sequelize.query(select, opts);
+    };
   }
   createQueryConfig = (definition) => {
     const fields = this.getFields(definition.name);
@@ -484,4 +523,9 @@ export function mergeFilterStatement(fieldName, value, match = true, originalWhe
     };
   }
   return filter;
+}
+
+
+function isFunction(functionToCheck) {
+  return (functionToCheck && {}.toString.call(functionToCheck) === "[object Function]");
 }
