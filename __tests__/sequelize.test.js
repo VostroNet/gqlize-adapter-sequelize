@@ -116,34 +116,37 @@ test("adapter - createStoredProcedure", async() => {
         allowNull: false,
       }
     },
+    queries: {
+      selectOne: {
+        drop: `DROP FUNCTION IF EXISTS public."selectOne";`,
+        create: `
+        -- Note this drop function only works on PGSQL >=10
+        -- PGSQL <= 9 needs argument definition to drop function
+        
+        -- FOR PGSQL 9 <=
+        -- select format('DROP FUNCTION %s(%s);', p.oid::regproc, pg_get_function_identity_arguments(p.oid))
+        -- FROM pg_catalog.pg_proc p LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
+        -- WHERE p.oid::regproc::text ilike '%selectOne%';
+        
+        
+        CREATE OR REPLACE FUNCTION public."selectOne"(
+          "start" int)
+            RETURNS TABLE(id integer)
+            LANGUAGE 'plpgsql'
+            COST 15
+            VOLATILE 
+        AS $BODY$
+        
+        BEGIN
+          RETURN QUERY (SELECT "start");
+        END
+        $BODY$;`
+      }
+    },
     classMethods: {
       newStoredProcedure: {
+        type: "sqlfunction",
         functionName: `selectOne`,
-        create: `
--- DROP is needed if you change arguments or return values
-DROP FUNCTION IF EXISTS public."selectOne"; 
-
--- Note this drop function only works on PGSQL >=10
--- PGSQL <= 9 needs argument definition to drop function
-
--- FOR PGSQL 9 <=
--- select format('DROP FUNCTION %s(%s);', p.oid::regproc, pg_get_function_identity_arguments(p.oid))
--- FROM pg_catalog.pg_proc p LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
--- WHERE p.oid::regproc::text ilike '%selectOne%';
-
-
-CREATE OR REPLACE FUNCTION public."selectOne"(
-  "start" int)
-    RETURNS TABLE(id integer)
-    LANGUAGE 'plpgsql'
-    COST 15
-    VOLATILE 
-AS $BODY$
-
-BEGIN
-  RETURN QUERY (SELECT "start");
-END
-$BODY$;`,
         args: ["number"],
       },
     },

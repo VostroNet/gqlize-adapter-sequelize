@@ -37,19 +37,24 @@ export default class SequelizeAdapter {
     this.sequelize = new (Function.prototype.bind.apply(Sequelize, [undefined].concat(config))); //eslint-disable-line
     this.options = adapterOptions;
     // this.startupScript;
+    this.startup = {
+      drop: "",
+      create: "",
+    };
   }
   initialise = async() => {
-    await this.sequelize.sync();
-    if (this.startupScript) {
-      await this.sequelize.query(this.startupScript, {
-        raw: true,
-      });
+    await this.getORM().sync();
+    if (this.startup.create !== "") {
+      await this.getORM().query(this.startup.create);
     }
   }
   reset = async() => {
-    await this.sequelize.sync({force: true});
-    if (this.startupScript) {
-      await this.sequelize.query(this.startupScript);
+    if (this.startup.drop !== "") {
+      await this.getORM().query(this.startup.drop);
+    }
+    await this.getORM().sync({force: true});
+    if (this.startup.create !== "") {
+      await this.getORM().query(this.startup.create);
     }
   }
   getORM = () => {
@@ -156,7 +161,18 @@ export default class SequelizeAdapter {
     // });
     this.sequelize.define(newDef.name, Object.assign({}, defaultAttr, newDef.define), newDef.options);
 
-    let {classMethods, instanceMethods} = newDef;
+    let {classMethods, instanceMethods, queries} = newDef;
+    if (queries) {
+      Object.keys(queries).forEach((k) => {
+        const q = queries[k];
+        if (q.drop) {
+          this.startup.drop += `${q.drop}\n`;
+        }
+        if (q.create) {
+          this.startup.create += `${q.create}\n`;
+        }
+      });
+    }
     if (newDef.options) {
       if (newDef.options.classMethods) {
         classMethods = newDef.options.classMethods;
@@ -170,7 +186,7 @@ export default class SequelizeAdapter {
         if (isFunction(classMethods[classMethod])) {
           this.sequelize.models[newDef.name][classMethod] = classMethods[classMethod];
         } else {
-          this.sequelize.models[newDef.name][classMethod] = await this.createStoredProcedure(classMethods[classMethod]);
+          this.sequelize.models[newDef.name][classMethod] = await this.generateSQLFunction(classMethods[classMethod]);
         }
       }));
     }
@@ -181,31 +197,39 @@ export default class SequelizeAdapter {
     }
     return this.sequelize.models[newDef.name];
   }
-  createStoredProcedure = async(storedProc) => {
-    // PostgreSQL supported only atm?
-    let {schema = "public", functionName, create, select, modelName, args = []} = storedProc;
-
-    if (!select) {
-      select = `SELECT "${schema}"."${functionName}"(${args.map((s) => `:${s}`, "").join(",")});`;
-    }
-    if (create) {
-      if (!this.startupScript) {
-        this.startupScript = "";
-      }
-      this.startupScript += `${create}\n`;
-    }
-    return (args, context) => {
-
+  createSQLFunction = async(query, modelName, args) => {
+    return (a, context) => {
       // security check?
       let opts = {
-        replacements: args,
+        replacements: args.reduce((o, ar) => {
+          o[ar] = (a[ar]) ? a[ar] : null;
+          return o;
+        }, {}),
         type: Sequelize.QueryTypes.SELECT,
       };
       if (modelName) {
         opts.model = this.sequelize.models[modelName];
       }
-      return this.sequelize.query(select, opts);
+      return this.sequelize.query(query, opts);
     };
+  }
+  generateSQLFunction = async(sqlFunc) => {
+    // PostgreSQL supported only atm?
+    let {type = "query", schema = "public", functionName, query, modelName, args = []} = sqlFunc;
+    let q = "";
+    switch (type) {
+      case "query":
+        q = query;
+        break;
+      case "sqlfunction":
+        if (query) {
+          q = query;
+        } else {
+          q = `SELECT * FROM "${schema}"."${functionName}"(${args.map((s) => `:${s}`, "").join(",")});`;
+        }
+    }
+    return this.createSQLFunction(q, modelName, args);
+
   }
   createQueryConfig = (definition) => {
     const fields = this.getFields(definition.name);
