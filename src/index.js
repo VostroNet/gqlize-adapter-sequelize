@@ -166,10 +166,10 @@ export default class SequelizeAdapter {
       Object.keys(queries).forEach((k) => {
         const q = queries[k];
         if (q.drop) {
-          this.startup.drop += `${q.drop}\n`;
+          this.startup.drop += `${isFunction(q.drop) ? q.drop() : q.drop}\n`;
         }
         if (q.create) {
-          this.startup.create += `${q.create}\n`;
+          this.startup.create += `${isFunction(q.create) ? q.create() : q.create}\n`;
         }
       });
     }
