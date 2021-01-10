@@ -9,6 +9,8 @@ const log = logger("gqlize::adapter::sequelize::");
 import createQueryType from "@vostro/graphql-types/lib/query";
 import { replaceWhereOperators } from "graphql-sequelize/lib/replaceWhereOperators";
 import {GraphQLBoolean, GraphQLID} from "graphql";
+import { GraphQLObjectType } from "graphql";
+import { GraphQLInputObjectType } from "graphql";
 
 
 // function formatObject(input) {
@@ -195,6 +197,7 @@ export default class SequelizeAdapter {
         this.sequelize.models[newDef.name].prototype[instanceMethod] = instanceMethods[instanceMethod];
       });
     }
+    this.sequelize.models[newDef.name].definition = newDef;
     return this.sequelize.models[newDef.name];
   }
   createSQLFunction = async(query, modelName, args) => {
@@ -337,14 +340,44 @@ export default class SequelizeAdapter {
     return this.sequelize.models[defName].queryType;
   }
   getDefaultListArgs = (defName, definition) => {
-    if (!this.sequelize.models[defName].queryType) {
-      const queryConfig = this.createQueryConfig(definition);
-      this.sequelize.models[defName].queryType = createQueryType(queryConfig);
+    let include;
+    if ((definition.relationships || []).length > 0) {
+      const fields = definition.relationships.reduce((o, relationship) => {
+        const targetModel = this.getModel(relationship.model);
+        o[relationship.name] = {
+          type: new GraphQLInputObjectType({
+            name: `GQLT${defName}Include${relationship.name}Object`,
+            fields: {
+              required: {
+                type: GraphQLBoolean,
+              },
+              where: {
+                type: this.getFilterGraphQLType(defName, targetModel.definition)
+              },
+            },
+          }),
+        };
+        return o;
+      }, {});
+
+
+
+      const includeType = new GraphQLInputObjectType({
+        name: `GQLT${defName}IncludeObject`,
+        fields,
+      });
+      include = {
+        type: includeType,
+      };
+
     }
+
+
     return {
       where: {
-        type: this.sequelize.models[defName].queryType,
+        type: this.getFilterGraphQLType(defName, definition),
       },
+      include,
     };
   }
   hasInlineCountFeature = () => {
