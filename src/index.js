@@ -373,28 +373,28 @@ export default class SequelizeAdapter {
     if (args.orderBy) {
       order = args.orderBy;
     }
-    if (this.hasInlineCountFeature()) {
-      const fields = this.getFields(defName);
-      Object.keys(fields).forEach((key) => {
-        const field = fields[key];
-        if (!field.primaryKey) {
-          if (selectedFields) {
-            const fieldForeignTarget = field.foreignTarget ? field.foreignTarget.toLowerCase() : undefined;
-            if (selectedFields.indexOf(key) === -1) {
-              if (fieldForeignTarget === undefined) {
-                return;
-              }
-              if (fieldForeignTarget !== selectedFields[selectedFields.indexOf(fieldForeignTarget)]) {
-                return;
-              }
+    const fields = this.getFields(defName);
+    Object.keys(fields).forEach((key) => {
+      const field = fields[key];
+      if (!field.primaryKey) {
+        if (selectedFields) {
+          const fieldForeignTarget = field.foreignTarget ? field.foreignTarget.toLowerCase() : undefined;
+          if (selectedFields.indexOf(key) === -1) {
+            if (fieldForeignTarget === undefined) {
+              return;
+            }
+            if (fieldForeignTarget !== selectedFields[selectedFields.indexOf(fieldForeignTarget)]) {
+              return;
             }
           }
-          attributes.unshift(field.name);
         }
-      });
-      this.getPrimaryKeyNameForModel(defName).forEach((key) => {
-        attributes.unshift(key);
-      });
+        attributes.unshift(field.name);
+      }
+    });
+    this.getPrimaryKeyNameForModel(defName).forEach((key) => {
+      attributes.unshift(key);
+    });
+    if (this.hasInlineCountFeature()) {
       // attributes.push(...this.getFields(defName).filter((f) => !f.primaryKey).map((f) => f.name))
       if (attributes.filter((a) => a.indexOf("full_count") > -1).length === 0) {
         if (this.sequelize.dialect.name === "postgres") {
