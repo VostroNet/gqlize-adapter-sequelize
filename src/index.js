@@ -1,3 +1,4 @@
+/* eslint-disable no-underscore-dangle */
 import Sequelize, {Op} from "sequelize";
 import logger from "./utils/logger";
 import unique from "./utils/unique";
@@ -7,10 +8,11 @@ const log = logger("gqlize::adapter::sequelize::");
 
 // import jsonType from "@vostro/graphql-types/lib/json";
 import createQueryType from "@vostro/graphql-types/lib/query";
-import { replaceWhereOperators } from "graphql-sequelize/lib/replaceWhereOperators";
-import {GraphQLBoolean, GraphQLID} from "graphql";
-import { GraphQLObjectType } from "graphql";
-import { GraphQLInputObjectType } from "graphql";
+import {replaceWhereOperators} from "graphql-sequelize/lib/replaceWhereOperators";
+import {GraphQLBoolean, GraphQLID, GraphQLList} from "graphql";
+// import {GraphQLObjectType} from "graphql";
+import {GraphQLInputObjectType} from "graphql";
+import waterfall from "./utils/waterfall";
 
 
 // function formatObject(input) {
@@ -89,66 +91,76 @@ export default class SequelizeAdapter {
   getFields = (modelName) => {
     const Model = this.sequelize.models[modelName];
     //TODO add filter for excluding or including fields
-    const fieldNames = Object.keys(Model.rawAttributes);
-    return fieldNames.reduce((fields, key) => {
-      const attr = Model.rawAttributes[key];
-      const autoPopulated = attr.autoIncrement === true ||
-        attr.defaultValue !== undefined ||
-        !(!Model._dataTypeChanges[key]); //eslint-disable-line
-      const allowNull = attr.allowNull === true;
-      const foreignKey = !(!attr.references);
-      let foreignTarget;
-      if (foreignKey) {
-        foreignTarget = Object.keys(Model.associations)
-          .filter((assocKey) => {
-            return Model.associations[assocKey].identifierField === key;
-          }).map((assocKey) => {
-            return Model.associations[assocKey].target.name;
-          })[0];
-        if (!foreignTarget) {
-          //TODO: better error logging
-          let message = `An error has occurred with relationships on model - ${modelName} - ${key}`;
-          if (process.env.NODE_ENV !== "production") {
-            const jsonAssociations = safeStringify(Model.associations);
-            const jsonRelationships = safeStringify(Model.relationships);
-            message = `Model: ${modelName} - Unable to find ${key} identifier field association in the model associations \n ---Associations--- ${jsonAssociations}\n ---Relationships--- ${jsonRelationships}`;
+    if (!this.sequelize.models[modelName]._gqlmeta.fields) {
+      const fieldNames = Object.keys(Model.rawAttributes);
+      this.sequelize.models[modelName]._gqlmeta.fields = fieldNames.reduce((fields, key) => {
+        const attr = Model.rawAttributes[key];
+        const autoPopulated = attr.autoIncrement === true ||
+          attr.defaultValue !== undefined ||
+          !(!Model._dataTypeChanges[key]); //eslint-disable-line
+        const allowNull = attr.allowNull === true;
+        const foreignKey = !(!attr.references);
+        let foreignTarget;
+        if (foreignKey) {
+          foreignTarget = Object.keys(Model.associations)
+            .filter((assocKey) => {
+              return Model.associations[assocKey].identifierField === key;
+            }).map((assocKey) => {
+              return Model.associations[assocKey].target.name;
+            })[0];
+          if (!foreignTarget) {
+            //TODO: better error logging
+            let message = `An error has occurred with relationships on model - ${modelName} - ${key}`;
+            if (process.env.NODE_ENV !== "production") {
+              const jsonAssociations = safeStringify(Model.associations);
+              const jsonRelationships = safeStringify(Model.relationships);
+              message = `Model: ${modelName} - Unable to find ${key} identifier field association in the model associations \n ---Associations--- ${jsonAssociations}\n ---Relationships--- ${jsonRelationships}`;
+            }
+            throw new Error(message);
           }
-          throw new Error(message);
         }
-      }
 
-      fields[key] = {
-        name: key,
-        type: attr.type,
-        primaryKey: attr.primaryKey === true,
-        allowNull,
-        description: attr.comment,
-        defaultValue: attr.defaultValue,
-        foreignKey,
-        foreignTarget,
-        autoPopulated,
-      };
-      return fields;
-    }, {});
-  }
-  getRelationships = (modelName) => {
-    const Model = this.sequelize.models[modelName];
-    return Object.keys(Model.associations)
-      .reduce((fields, key) => {
-        const assoc = Model.associations[key];
-        const {associationType} = assoc;
         fields[key] = {
           name: key,
-          target: assoc.target.name,
-          source: assoc.source.name,
-          associationType: `${associationType.charAt(0).toLowerCase()}${associationType.slice(1)}`,
-          foreignKey: assoc.foreignKey,
-          targetKey: assoc.targetKey,
-          sourceKey: assoc.sourceKey,
-          accessors: assoc.accessors,
+          type: attr.type,
+          primaryKey: attr.primaryKey === true,
+          allowNull,
+          description: attr.comment,
+          defaultValue: attr.defaultValue,
+          foreignKey,
+          foreignTarget,
+          autoPopulated,
         };
         return fields;
       }, {});
+    }
+    return this.sequelize.models[modelName]._gqlmeta.fields;
+  }
+  getRelationships = (modelName) => {
+    const Model = this.sequelize.models[modelName];
+    if (!this.sequelize.models[modelName]._gqlmeta.relationships) {
+      this.sequelize.models[modelName]._gqlmeta.relationships = Object.keys(Model.associations)
+        .reduce((fields, key) => {
+          const assoc = Model.associations[key];
+          const {associationType} = assoc;
+          fields[key] = {
+            name: key,
+            target: assoc.target.name,
+            source: assoc.source.name,
+            associationType: `${associationType.charAt(0).toLowerCase()}${associationType.slice(1)}`,
+            foreignKey: assoc.foreignKey,
+            targetKey: assoc.targetKey,
+            sourceKey: assoc.sourceKey,
+            accessors: assoc.accessors,
+          };
+          return fields;
+        }, {});
+    }
+    return this.sequelize.models[modelName]._gqlmeta.relationships;
+  }
+  getRelationship = (modelName, assocName) => {
+    const rels = this.getRelationships(modelName);
+    return rels[assocName];
   }
   createModel = async(def, hooks) => {
     const {defaultAttr, defaultModel} = this.options;
@@ -197,6 +209,8 @@ export default class SequelizeAdapter {
         this.sequelize.models[newDef.name].prototype[instanceMethod] = instanceMethods[instanceMethod];
       });
     }
+    this.sequelize.models[newDef.name].prototype.Model = this.sequelize.models[newDef.name];
+    this.sequelize.models[newDef.name]._gqlmeta = {};
     this.sequelize.models[newDef.name].definition = newDef;
     return this.sequelize.models[newDef.name];
   }
@@ -330,7 +344,7 @@ export default class SequelizeAdapter {
     return [this.sequelize.models[modelName].primaryKeyAttribute];
   }
   getValueFromInstance(data, keyName) {
-    return data.get(keyName);
+    return data[keyName];
   }
   getFilterGraphQLType = (defName, definition) => {
     if (!this.sequelize.models[defName].queryType) {
@@ -339,9 +353,10 @@ export default class SequelizeAdapter {
     }
     return this.sequelize.models[defName].queryType;
   }
-  getDefaultListArgs = (defName, definition) => {
-    let include;
-    if ((definition.relationships || []).length > 0) {
+
+  getIncludeGraphQLType = (defName, definition) => {
+    if (!this.sequelize.models[defName].includeType
+      && (definition.relationships || []).length > 0) {
       const fields = definition.relationships.reduce((o, relationship) => {
         const targetModel = this.getModel(relationship.model);
         o[relationship.name] = {
@@ -352,33 +367,36 @@ export default class SequelizeAdapter {
                 type: GraphQLBoolean,
               },
               where: {
-                type: this.getFilterGraphQLType(defName, targetModel.definition)
+                type: this.getFilterGraphQLType(targetModel.name, targetModel.definition),
               },
             },
           }),
         };
         return o;
       }, {});
-
-
-
+      // const queryConfig = this.createQueryConfig(definition);
       const includeType = new GraphQLInputObjectType({
         name: `GQLT${defName}IncludeObject`,
         fields,
       });
-      include = {
-        type: includeType,
-      };
-
+      this.sequelize.models[defName].includeType = new GraphQLList(includeType);
     }
-
-
-    return {
+    return this.sequelize.models[defName].includeType;
+  }
+  getDefaultListArgs = (defName, definition) => {
+    const includeType = this.getIncludeGraphQLType(defName, definition);
+    const retVal = {
       where: {
         type: this.getFilterGraphQLType(defName, definition),
       },
-      include,
     };
+
+    if (includeType) {
+      retVal.include = {
+        type: includeType,
+      };
+    }
+    return retVal;
   }
   hasInlineCountFeature = () => {
     if (this.options.disableInlineCount) {
@@ -397,7 +415,7 @@ export default class SequelizeAdapter {
     return fullCount;
   }
   processListArgsToOptions = async(defName, args, offset, info, whereOperators, defaultOptions = {}, selectedFields) => {
-    let limit, order, attributes = defaultOptions.attributes || [], where;
+    let limit, include = [], order, attributes = defaultOptions.attributes || [], where;
     // const Model = this.getModel(defName);
 
     if (args.first || args.last) {
@@ -448,17 +466,37 @@ export default class SequelizeAdapter {
     if (args.where) {
       where = await this.processFilterArgument(args.where, whereOperators);
     }
+    if ((args.include || []).length > 0) {
+      include = await waterfall(args.include, (i, o) => {
+        return waterfall(Object.keys(i), async(relName, oo) => {
+          const inc = i[relName];
+          const rel = this.getRelationship(defName, relName);
+          const TargetModel =  this.sequelize.models[rel.target];
+          const {whereOperators} = TargetModel.definition;
+
+          return oo.concat([{
+            model: TargetModel,
+            required: inc.required,
+            as: relName,
+            where: await this.processFilterArgument(inc.where || {}, whereOperators),
+          }]);
+        }, o);
+      }, []);
+
+    }
     return {
       getOptions: Object.assign({
         order,
         where,
         limit,
         offset,
+        include,
         attributes: unique(attributes),
       }, defaultOptions),
       countOptions: !(this.hasInlineCountFeature()) ? Object.assign({
         where,
         attributes,
+        include,
       }, defaultOptions) : undefined,
     };
   }
@@ -522,6 +560,32 @@ export default class SequelizeAdapter {
   }
   mergeFilterStatement(fieldName, value, match, originalWhere) {
     return mergeFilterStatement(fieldName, value, match, originalWhere);
+  }
+  resolveSingleRelationship = async(defName, relationship, source, args, context, info, options) => {
+    if (source[relationship.name]) {
+      return source[relationship.name];
+    }
+    return source[relationship.accessors.get](options);
+  }
+  resolveManyRelationship = async(defName, relationship, source, args, offset, whereOperators, info, options) => {
+    if (source[relationship.name]) {
+      const val = source[relationship.name];
+      return {
+        total: val.length,
+        models: val,
+      };
+    }
+    const {getOptions, countOptions} = await this.processListArgsToOptions(defName, args, offset, info, whereOperators, options);
+    const models = await source[relationship.accessors.get](getOptions);
+    let total;
+    if (this.hasInlineCountFeature()) {
+      total = await this.getInlineCount(models);
+    } else {
+      total = await source[relationship.accessors.count](countOptions);
+    }
+    return {
+      total, models,
+    };
   }
 }
 
