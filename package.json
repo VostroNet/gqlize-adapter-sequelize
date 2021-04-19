@@ -1,6 +1,6 @@
 {
   "name": "@vostro/gqlize-adapter-sequelize",
-  "version": "4.0.0-alpha14",
+  "version": "4.0.1",
   "description": "Sequelize adapter for the data binding library - gqlize",
   "main": "lib/index.js",
   "scripts": {
@@ -12,10 +12,6 @@
   "homepage": "https://github.com/VostroNet/gqlize-adapter-sequelize",
   "bugs": {
     "url": "https://github.com/VostroNet/gqlize-adapter-sequelize/issues"
-  },
-  "devEngines": {
-    "node": "8.x || 9.x || 10.x",
-    "npm": "3.x || 4.x || 5.x"
   },
   "devDependencies": {
     "@babel/core": "^7.13.15",
