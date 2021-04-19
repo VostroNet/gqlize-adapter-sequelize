@@ -4,7 +4,7 @@ import TaskModel from "./helper/models/task";
 import TaskItemModel from "./helper/models/task-item";
 import waterfall from "../src/utils/waterfall";
 import Sequelize from "sequelize";
-import jsonType from "@vostro/graphql-types/lib/json";
+// import jsonType from "@vostro/graphql-types/lib/json";
 
 test("adapter - getORM", () => {
   const adapter = new SequelizeAdapter({}, {
@@ -114,7 +114,7 @@ test("adapter - createStoredProcedure", async() => {
         comment: "This is the name!",
         defaultValue: "test",
         allowNull: false,
-      }
+      },
     },
     queries: {
       selectOne: {
@@ -140,8 +140,8 @@ test("adapter - createStoredProcedure", async() => {
         BEGIN
           RETURN QUERY (SELECT "start");
         END
-        $BODY$;`
-      }
+        $BODY$;`,
+      },
     },
     classMethods: {
       newStoredProcedure: {
@@ -155,7 +155,7 @@ test("adapter - createStoredProcedure", async() => {
   adapter.sequelize.query = async(q, options) => {
     //stop from writing to sqlite
     //as stored procedures are not supported
-    console.log("q", {q, options});
+    console.log("q", {q, options}); //eslint-disable-line
   };
   await adapter.reset();
   await adapter.getORM().models.Item.newStoredProcedure({
@@ -178,7 +178,7 @@ test("adapter - createRelationship - belongsToMany", async() => {
         comment: "This is the name!",
         defaultValue: "test",
         allowNull: false,
-      }
+      },
     },
     relationships: [{
       type: "belongsToMany",
@@ -186,7 +186,7 @@ test("adapter - createRelationship - belongsToMany", async() => {
       name: "children",
       options: {
         through: {
-          model: "ItemChildMap"
+          model: "ItemChildMap",
         },
         as: "children",
         foreignKey: "itemId",
@@ -215,7 +215,7 @@ test("adapter - createRelationship - belongsToMany", async() => {
       name: "parents",
       options: {
         through: {
-          model: "ItemChildMap"
+          model: "ItemChildMap",
         },
         as: "parents",
         foreignKey: "itemChildId",
@@ -317,7 +317,7 @@ test("adapter - getFields - define field", async() => {
         comment: "This is the name!",
         defaultValue: "test",
         allowNull: false,
-      }
+      },
     },
     relationships: [],
   };
@@ -391,7 +391,7 @@ test("adapter - getFields - relationship not null foreign keys", async() => {
         type: Sequelize.INTEGER,
         comment: "This is the foreign key!",
         allowNull: false,
-      }
+      },
     },
     relationships: [{
       type: "hasMany",
@@ -439,7 +439,7 @@ test("adapter - getFields - timestamp fields", async() => {
         comment: "This is the name!",
         defaultValue: "test",
         allowNull: false,
-      }
+      },
     },
     relationships: [{
       type: "hasMany",
@@ -594,6 +594,49 @@ test("adapter - getDefaultListArgs", async() => {
   expect(defaultArgs).toBeDefined();
   expect(defaultArgs.where).toBeDefined();
   expect(defaultArgs.where.type).toEqual(adapter.sequelize.models[itemDef.name].queryType);
+  
+});
+
+test("adapter - include - getDefaultListArgs", async() => {
+  const adapter = new SequelizeAdapter({}, {
+    dialect: "sqlite",
+  });
+  const itemDef = {
+    name: "Item",
+    define: {
+      "name": {
+        type: Sequelize.STRING,
+        comment: "This is the name!",
+        defaultValue: "test",
+        allowNull: false,
+      },
+    },
+    relationships: [{
+      type: "hasMany",
+      model: "Item",
+      name: "children",
+      options: {
+        as: "children",
+        foreignKey: "itemId",
+      },
+    }, {
+      type: "belongsTo",
+      model: "Item",
+      name: "parent",
+      options: {
+        as: "parent",
+        foreignKey: "itemId",
+      },
+    }],
+  };
+  await adapter.createModel(itemDef);
+  const defaultArgs = adapter.getDefaultListArgs(itemDef.name, itemDef);
+  expect(defaultArgs).toBeDefined();
+  expect(defaultArgs.where).toBeDefined();
+  expect(defaultArgs.include).toBeDefined();
+  expect(defaultArgs.include.type).toBeDefined();
+  expect(defaultArgs.where.type).toEqual(adapter.sequelize.models[itemDef.name].queryType);
+  expect(defaultArgs.include).toBeDefined();
 });
 
 test("adapter - hasInlineCountFeature - sqlite", async() => {
@@ -641,7 +684,7 @@ test("adapter - processListArgsToOptions - hasInlineCount", async() => {
   const itemDef = {
     name: "Item",
     define: {},
-    relationships: []
+    relationships: [],
   };
   await adapter.createModel(itemDef);
 
@@ -692,7 +735,7 @@ test("adapter - processListArgsToOptions - hasInlineCount - mssql", async() => {
   const itemDef = {
     name: "Item",
     define: {},
-    relationships: []
+    relationships: [],
   };
 
   await adapter.createModel(itemDef);
@@ -717,7 +760,7 @@ test("adapter - processListArgsToOptions - hasInlineCount - postgres", async() =
   const itemDef = {
     name: "Item",
     define: {},
-    relationships: []
+    relationships: [],
   };
 
   await adapter.createModel(itemDef);
@@ -740,7 +783,7 @@ test("adapter - processListArgsToOptions - no inlineCount", async() => {
   const itemDef = {
     name: "Item",
     define: {},
-    relationships: []
+    relationships: [],
   };
 
   await adapter.createModel(itemDef);
@@ -771,12 +814,12 @@ test("adapter - deleteFunction", async() => {
   await adapter.createModel(TaskModel);
   await adapter.reset();
   const Task = adapter.getModel("Task");
-  const task = await Task.create({
+  await Task.create({
     name: "ttttttttttttttt",
   });
 
   const func = await adapter.getDeleteFunction("Task", null);
-  const proxyFunc = await func({}, {}, (i) => i, (i) => i);
+  await func({}, {}, (i) => i, (i) => i);
   // const result = await proxyFunc();
   // expect(result).not.toBeUndefined();
   // expect(result).toHaveLength(1);
