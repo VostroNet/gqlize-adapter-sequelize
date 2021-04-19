@@ -793,7 +793,7 @@ test("adapter - processListArgsToOptions - no inlineCount", async() => {
   expect(countOptions.limit).toBeUndefined();
   expect(getOptions).toBeDefined();
   expect(getOptions.limit).toEqual(1);
-  expect(getOptions.attributes).toHaveLength(0);
+  expect(getOptions.attributes).toHaveLength(3);
 });
 
 test("adapter - getTypeMapper", async() => {
