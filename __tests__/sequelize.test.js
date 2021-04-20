@@ -593,7 +593,8 @@ test("adapter - getDefaultListArgs", async() => {
   const defaultArgs = adapter.getDefaultListArgs(itemDef.name, itemDef);
   expect(defaultArgs).toBeDefined();
   expect(defaultArgs.where).toBeDefined();
-  expect(defaultArgs.where.type).toEqual(adapter.sequelize.models[itemDef.name].queryType);
+  // eslint-disable-next-line no-underscore-dangle
+  expect(defaultArgs.where.type).toEqual(adapter.sequelize.models[itemDef.name]._gqlmeta.queryType);
   
 });
 
@@ -635,7 +636,8 @@ test("adapter - include - getDefaultListArgs", async() => {
   expect(defaultArgs.where).toBeDefined();
   expect(defaultArgs.include).toBeDefined();
   expect(defaultArgs.include.type).toBeDefined();
-  expect(defaultArgs.where.type).toEqual(adapter.sequelize.models[itemDef.name].queryType);
+  // eslint-disable-next-line no-underscore-dangle
+  expect(defaultArgs.where.type).toEqual(adapter.sequelize.models[itemDef.name]._gqlmeta.queryType);
   expect(defaultArgs.include).toBeDefined();
 });
 

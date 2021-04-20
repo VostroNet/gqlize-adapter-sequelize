@@ -9,7 +9,7 @@ const log = logger("gqlize::adapter::sequelize::");
 // import jsonType from "@vostro/graphql-types/lib/json";
 import createQueryType from "@vostro/graphql-types/lib/query";
 import {replaceWhereOperators} from "graphql-sequelize/lib/replaceWhereOperators";
-import {GraphQLBoolean, GraphQLID, GraphQLList} from "graphql";
+import {GraphQLBoolean, GraphQLEnumType, GraphQLID, GraphQLList} from "graphql";
 // import {GraphQLObjectType} from "graphql";
 import {GraphQLInputObjectType} from "graphql";
 import waterfall from "./utils/waterfall";
@@ -77,6 +77,12 @@ export default class SequelizeAdapter {
   getModels = () => {
     return this.sequelize.models;
   }
+  getMetaObj = (modelName, metaName) => {
+    return this.sequelize.models[modelName]._gqlmeta[metaName];
+  }
+  setMetaObj = (modelName, metaName, value) => {
+    this.sequelize.models[modelName]._gqlmeta[metaName] = value;
+  }
   getTypeMapper = () => {
     return typeMapper;
   }
@@ -91,9 +97,9 @@ export default class SequelizeAdapter {
   getFields = (modelName) => {
     const Model = this.sequelize.models[modelName];
     //TODO add filter for excluding or including fields
-    if (!this.sequelize.models[modelName]._gqlmeta.fields) {
+    if (!this.getMetaObj(modelName, "fields")) {
       const fieldNames = Object.keys(Model.rawAttributes);
-      this.sequelize.models[modelName]._gqlmeta.fields = fieldNames.reduce((fields, key) => {
+      const fields = fieldNames.reduce((fields, key) => {
         const attr = Model.rawAttributes[key];
         const autoPopulated = attr.autoIncrement === true ||
           attr.defaultValue !== undefined ||
@@ -133,13 +139,14 @@ export default class SequelizeAdapter {
         };
         return fields;
       }, {});
+      this.setMetaObj(modelName, "fields", fields);
     }
-    return this.sequelize.models[modelName]._gqlmeta.fields;
+    return this.getMetaObj(modelName, "fields");
   }
   getRelationships = (modelName) => {
     const Model = this.sequelize.models[modelName];
-    if (!this.sequelize.models[modelName]._gqlmeta.relationships) {
-      this.sequelize.models[modelName]._gqlmeta.relationships = Object.keys(Model.associations)
+    if (!this.getMetaObj(modelName, "relationships")) {
+      this.setMetaObj(modelName, "relationships", Object.keys(Model.associations)
         .reduce((fields, key) => {
           const assoc = Model.associations[key];
           const {associationType} = assoc;
@@ -154,9 +161,9 @@ export default class SequelizeAdapter {
             accessors: assoc.accessors,
           };
           return fields;
-        }, {});
+        }, {}));
     }
-    return this.sequelize.models[modelName]._gqlmeta.relationships;
+    return this.getMetaObj(modelName, "relationships");
   }
   getRelationship = (modelName, assocName) => {
     const rels = this.getRelationships(modelName);
@@ -347,28 +354,51 @@ export default class SequelizeAdapter {
     return data[keyName];
   }
   getFilterGraphQLType = (defName, definition) => {
-    if (!this.sequelize.models[defName].queryType) {
-      const queryConfig = this.createQueryConfig(definition);
-      this.sequelize.models[defName].queryType = createQueryType(queryConfig);
+
+    if (!this.getMetaObj(defName, "queryType")) {
+      this.setMetaObj(defName, "queryType", createQueryType(this.createQueryConfig(definition)));
     }
-    return this.sequelize.models[defName].queryType;
+    return this.getMetaObj(defName, "queryType");
+  }
+  getOrderByGraphQLType = (defName) => {
+    if (!this.getMetaObj(defName, "orderByType")) {
+      const fields = this.getFields(defName);
+      this.setMetaObj(defName, "orderByType", new GraphQLList(new GraphQLEnumType({
+        name: `${defName}OrderBy`,
+        values: Object.keys(fields).reduce((o, fieldName) => {
+          o[`${fieldName}ASC`] = {value: [fieldName, "ASC"]};
+          o[`${fieldName}DESC`] = {value: [fieldName, "DESC"]};
+          return o;
+        }, {}),
+        // description: "",
+      })));
+    }
+    return this.getMetaObj(defName, "orderByType");
   }
 
   getIncludeGraphQLType = (defName, definition) => {
-    if (!this.sequelize.models[defName].includeType
+    if (!this.getMetaObj(defName, "includeType")
       && (definition.relationships || []).length > 0) {
       const fields = definition.relationships.reduce((o, relationship) => {
         const targetModel = this.getModel(relationship.model);
         o[relationship.name] = {
           type: new GraphQLInputObjectType({
             name: `GQLT${defName}Include${relationship.name}Object`,
-            fields: {
-              required: {
-                type: GraphQLBoolean,
-              },
-              where: {
-                type: this.getFilterGraphQLType(targetModel.name, targetModel.definition),
-              },
+            fields: () => {
+              return {
+                required: {
+                  type: GraphQLBoolean,
+                },
+                where: {
+                  type: this.getFilterGraphQLType(targetModel.name, targetModel.definition),
+                },
+                orderBy: {
+                  type: this.getOrderByGraphQLType(targetModel.name),
+                },
+                include: {
+                  type: this.getIncludeGraphQLType(targetModel.name, targetModel.definition),
+                },
+              };
             },
           }),
         };
@@ -379,9 +409,9 @@ export default class SequelizeAdapter {
         name: `GQLT${defName}IncludeObject`,
         fields,
       });
-      this.sequelize.models[defName].includeType = new GraphQLList(includeType);
+      this.setMetaObj(defName, "includeType", new GraphQLList(includeType));
     }
-    return this.sequelize.models[defName].includeType;
+    return this.getMetaObj(defName, "includeType");
   }
   getDefaultListArgs = (defName, definition) => {
     const includeType = this.getIncludeGraphQLType(defName, definition);
@@ -415,7 +445,7 @@ export default class SequelizeAdapter {
     return fullCount;
   }
   processListArgsToOptions = async(defName, args, offset, info, whereOperators, defaultOptions = {}, selectedFields) => {
-    let limit, include = [], order, attributes = defaultOptions.attributes || [], where;
+    let limit, include = [], order = [], attributes = defaultOptions.attributes || [], where;
     // const Model = this.getModel(defName);
 
     if (args.first || args.last) {
@@ -467,21 +497,28 @@ export default class SequelizeAdapter {
       where = await this.processFilterArgument(args.where, whereOperators);
     }
     if ((args.include || []).length > 0) {
-      include = await waterfall(args.include, (i, o) => {
-        return waterfall(Object.keys(i), async(relName, oo) => {
-          const inc = i[relName];
-          const rel = this.getRelationship(defName, relName);
-          const TargetModel =  this.sequelize.models[rel.target];
-          const {whereOperators} = TargetModel.definition;
-
-          return oo.concat([{
-            model: TargetModel,
-            required: inc.required,
-            as: relName,
-            where: await this.processFilterArgument(inc.where || {}, whereOperators),
-          }]);
-        }, o);
-      }, []);
+      const result = await this.processIncludeStatement(defName, args.include, order);
+      order = result.order;
+      include = result.include;
+      // include = await waterfall(args.include, (i, o) => {
+      //   return waterfall(Object.keys(i), async(relName, oo) => {
+      //     const inc = i[relName];
+      //     const rel = this.getRelationship(defName, relName);
+      //     const TargetModel =  this.sequelize.models[rel.target];
+      //     const {whereOperators} = TargetModel.definition;
+      //     if ((inc.orderBy || []).length > 0) {
+      //       order = order.concat(inc.orderBy.map((ob) => {
+      //         return [{model: TargetModel, as: relName}].concat(ob);
+      //       }));
+      //     }
+      //     return oo.concat([{
+      //       model: TargetModel,
+      //       required: inc.required,
+      //       as: relName,
+      //       where: await this.processFilterArgument(inc.where || {}, whereOperators),
+      //     }]);
+      //   }, o);
+      // }, []);
 
     }
     return {
@@ -498,6 +535,39 @@ export default class SequelizeAdapter {
         attributes,
         include,
       }, defaultOptions) : undefined,
+    };
+  }
+  async processIncludeStatement(defName, includeStatements, order, parentRelsForOrder = []) {
+    let orders = [];
+    const incs = await waterfall(includeStatements, (i, o) => {
+      return waterfall(Object.keys(i), async(relName, oo) => {
+        const inc = i[relName];
+        const rel = this.getRelationship(defName, relName);
+        const TargetModel =  this.sequelize.models[rel.target];
+        const {whereOperators} = TargetModel.definition;
+        const orderAssocPrefix = {model: TargetModel, as: relName};
+        if ((inc.orderBy || []).length > 0) {
+          orders = [...orders, ...inc.orderBy.map((ob) => {
+            return [...parentRelsForOrder, orderAssocPrefix, ...ob];
+          })];
+        }
+        let retVal = {
+          model: TargetModel,
+          required: inc.required,
+          as: relName,
+          where: await this.processFilterArgument(inc.where || {}, whereOperators),
+        };
+        if (inc.include) {
+          const v = await this.processIncludeStatement(TargetModel.definition.name, inc.include, order, [...parentRelsForOrder, orderAssocPrefix]);
+          retVal.include = v.include;
+          orders = [...orders, ...(v.order || [])];
+        }
+        return [...oo, retVal];
+      }, o);
+    }, []);
+    return {
+      include: incs,
+      order: orders,
     };
   }
   async processFilterArgument(where, whereOperators) {
@@ -588,7 +658,6 @@ export default class SequelizeAdapter {
     };
   }
 }
-
 
 // function generateHooks(hooks = [], schemaName) {
 //   return hooks.reduce((o, h) => {
