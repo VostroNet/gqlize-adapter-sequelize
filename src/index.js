@@ -3,7 +3,7 @@ import Sequelize, {Op} from "sequelize";
 import logger from "./utils/logger";
 import unique from "./utils/unique";
 import typeMapper from "./type-mapper";
-import {replaceDefWhereOperators} from "./utils/replace-id-deep";
+import replaceIdDeep, {replaceDefWhereOperators} from "./utils/replace-id-deep";
 const log = logger("gqlize::adapter::sequelize::");
 
 // import jsonType from "@vostro/graphql-types/lib/json";
@@ -578,8 +578,48 @@ export default class SequelizeAdapter {
     return w;
   }
   getAllArgsToReplaceId() {
-    return ["where"];
+    return ["where", "include"];
   }
+  getGlobalKeys = (defName) => {
+    const fields = this.getFields(defName);
+    return Object.keys(fields).filter((key) => {
+      return fields[key].foreignKey || fields[key].primaryKey;
+    });
+  }
+  replaceIdInWhere = (where, defName, variableValues) => {
+    const globalKeys = this.getGlobalKeys(defName);
+    return replaceIdDeep(where, globalKeys, variableValues);
+  }
+  replaceIdInInclude = (arrIncludeVar, defName, variableValues) => {
+    return arrIncludeVar.map((iv) => {
+      return Object.keys(iv).reduce((o, relName) => {
+        let {include, where, ...rest} = iv[relName];
+        o[relName] = rest;
+        const rel = this.getRelationship(defName, relName);
+        if (where) {
+          o[relName].where = this.replaceIdInWhere(where, rel.target, variableValues);
+        }
+        if (include) {
+          o[relName].include = this.replaceIdInInclude(include, rel.target, variableValues);
+        }
+        return o;
+      }, {});
+    });
+  }
+  replaceIdInArgs = (args, defName, variableValues) => {
+    // const argNames = ["where", "include"];
+    let {where, include, ...rest} = args;
+    if (include) {
+      // const rels = this.getMetaObj(modelName, "relationships")
+      rest.include = this.replaceIdInInclude(include, defName, variableValues);
+    }
+    if (where) {
+      rest.where = this.replaceIdInWhere(where, defName, variableValues);
+    }
+    return rest;
+  }
+
+
   findAll = (defName, options) => {
     const Model = this.sequelize.models[defName];
     return Model.findAll(options);
