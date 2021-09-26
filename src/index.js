@@ -538,7 +538,7 @@ export default class SequelizeAdapter {
     };
   }
   async processIncludeStatement(defName, includeStatements, order, parentRelsForOrder = []) {
-    let orders = [];
+    let orders = order;
     const incs = await waterfall(includeStatements, (i, o) => {
       return waterfall(Object.keys(i), async(relName, oo) => {
         const inc = i[relName];

@@ -595,7 +595,7 @@ test("adapter - getDefaultListArgs", async() => {
   expect(defaultArgs.where).toBeDefined();
   // eslint-disable-next-line no-underscore-dangle
   expect(defaultArgs.where.type).toEqual(adapter.sequelize.models[itemDef.name]._gqlmeta.queryType);
-  
+
 });
 
 test("adapter - include - getDefaultListArgs", async() => {
@@ -831,4 +831,22 @@ test("adapter - deleteFunction", async() => {
   });
   expect(result).toBeDefined();
   expect(result).toHaveLength(0);
+});
+
+
+
+test("adapter - processIncludeStatement", async() => {
+  const adapter = new SequelizeAdapter({}, {
+    dialect: "sqlite",
+  });
+  await adapter.createModel(TaskModel);
+  await adapter.reset();
+  const Task = adapter.getModel("Task");
+  await Task.create({
+    name: "ttttttttttttttt",
+  });
+
+  const results = await adapter.processIncludeStatement("Task", [], [["createdAt", "DESC"]]);
+  expect(results.include).toBeDefined();
+  expect(results.order).toHaveLength(1);
 });
