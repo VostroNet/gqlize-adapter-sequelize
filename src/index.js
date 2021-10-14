@@ -195,6 +195,9 @@ export default class SequelizeAdapter {
       });
     }
     if (newDef.options) {
+      if (newDef.options.disablePrimaryKey) {
+        this.sequelize.models[newDef.name].removeAttribute("id");
+      }
       if (newDef.options.classMethods) {
         classMethods = newDef.options.classMethods;
       }
