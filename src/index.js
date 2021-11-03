@@ -136,6 +136,7 @@ export default class SequelizeAdapter {
           foreignKey,
           foreignTarget,
           autoPopulated,
+          ignoreGlobalKey: attr.ignoreGlobalKey,
         };
         return fields;
       }, {});
@@ -195,8 +196,13 @@ export default class SequelizeAdapter {
       });
     }
     if (newDef.options) {
-      if (newDef.options.disablePrimaryKey) {
+      if (newDef.disablePrimaryKey) {
         this.sequelize.models[newDef.name].removeAttribute("id");
+      }
+      if (newDef.removeAttributes) {
+        newDef.removeAttributes.forEach((attr) => {
+          this.sequelize.models[newDef.name].removeAttribute(attr);
+        });
       }
       if (newDef.options.classMethods) {
         classMethods = newDef.options.classMethods;
@@ -222,6 +228,7 @@ export default class SequelizeAdapter {
     this.sequelize.models[newDef.name].prototype.Model = this.sequelize.models[newDef.name];
     this.sequelize.models[newDef.name]._gqlmeta = {};
     this.sequelize.models[newDef.name].definition = newDef;
+
     return this.sequelize.models[newDef.name];
   }
   createSQLFunction = async(query, modelName, args) => {
@@ -586,7 +593,7 @@ export default class SequelizeAdapter {
   getGlobalKeys = (defName) => {
     const fields = this.getFields(defName);
     return Object.keys(fields).filter((key) => {
-      return fields[key].foreignKey || fields[key].primaryKey;
+      return (fields[key].foreignKey || fields[key].primaryKey) && !fields[key].ignoreGlobalKey;
     });
   }
   replaceIdInWhere = (where, defName, variableValues) => {
