@@ -483,7 +483,9 @@ export default class SequelizeAdapter {
       }
     });
     this.getPrimaryKeyNameForModel(defName).forEach((key) => {
-      attributes.unshift(key);
+      if (key) {
+        attributes.unshift(key);
+      }
     });
     if (this.hasInlineCountFeature()) {
       // attributes.push(...this.getFields(defName).filter((f) => !f.primaryKey).map((f) => f.name))
