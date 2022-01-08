@@ -3,12 +3,12 @@ import {fromGlobalId} from "graphql-relay";
 import waterfall from "./waterfall";
 import {Op} from "sequelize";
 
-function getProperties(obj) {
-  return [].concat(Object.keys(obj), Object.getOwnPropertySymbols(obj));
+function getProperties(obj: any): any {
+  return [...Object.keys(obj), ...Object.getOwnPropertySymbols(obj)];
 }
 
 
-function checkObject(value, keyMap, variableValues, isTagged) {
+function checkObject(value: any, keyMap: any, variableValues: any, isTagged: boolean | undefined): any {
   if (typeof value === "function") {
     const result = value(variableValues);
     return checkObject(result, keyMap, variableValues, isTagged);
@@ -29,26 +29,29 @@ function checkObject(value, keyMap, variableValues, isTagged) {
   }
 }
 
-export default function replaceIdDeep(obj, keyMap, variableValues, isTagged = false) {
-  return getProperties(obj).reduce((m, key) => {
+export default function replaceIdDeep(obj: any, keyMap: string[], variableValues: any, isTagged = false) {
+  if (obj instanceof Function) {
+    obj = obj(variableValues);
+  }
+  return getProperties(obj).reduce((m: any, key: string) => {
     if (keyMap.indexOf(key) > -1 || isTagged) {
       m[key] = checkObject(obj[key], keyMap, variableValues, true);
     } else {
       m[key] = checkObject(obj[key], keyMap, variableValues, false);
     }
     return m;
-  }, {});
+  }, {} as any);
 }
 
 
 
-function hasUserPrototype(obj) {
+function hasUserPrototype(obj: any) {
   if (!obj) {
     return false;
   }
   return Object.getPrototypeOf(obj) !== Object.prototype;
 }
-async function checkObjectForWhereOps(value, keyMap, params) {
+async function checkObjectForWhereOps(value: any[], keyMap: any, params: any): Promise<any> {
   if (Array.isArray(value)) {
     return Promise.all(value.map((val) => {
       return checkObjectForWhereOps(val, keyMap, params);
@@ -62,12 +65,12 @@ async function checkObjectForWhereOps(value, keyMap, params) {
   }
 }
 
-export async function replaceDefWhereOperators(obj, keyMap, options) {
+export async function replaceDefWhereOperators(obj: any, keyMap: any, options: any) {
   return waterfall(getProperties(obj), async(key, memo) => {
     if (keyMap[key]) {
       const newWhereObj = await keyMap[key](memo, options, obj[key]);
       delete memo[key];
-      memo = getProperties(newWhereObj).reduce((m, newKey) => {
+      memo = getProperties(newWhereObj).reduce((m: any, newKey: any) => {
         if (m[newKey]) {
           const newValue = {
             [newKey]: newWhereObj[newKey],
