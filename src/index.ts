@@ -16,7 +16,7 @@ const log = logger("gqlize::adapter::sequelize::");
 
 // import jsonType from "@vostro/graphql-types/lib/json";
 import createQueryType from "@vostro/graphql-types/lib/query";
-import { replaceWhereOperators } from "graphql-sequelize/lib/replaceWhereOperators";
+
 import {
   GraphQLBoolean,
   GraphQLEnumType,
@@ -30,6 +30,7 @@ import { GraphQLInputObjectType } from "graphql";
 import waterfall from "./utils/waterfall";
 import { Association, GqlizeAdapter, WhereOperators, DefinitionFieldMeta } from '@vostro/gqlize/src/types';
 import { SequelizeDefinition, SqlClassMethod } from "./types";
+import { replaceWhereOperators } from "./utils/where-ops";
 
 
 
