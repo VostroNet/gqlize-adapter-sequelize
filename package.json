@@ -4,7 +4,7 @@
   "description": "Sequelize adapter for the data binding library - gqlize",
   "main": "lib/index.js",
   "scripts": {
-    "prepublishOnly": "tsc --build && tsc --declaration --declarationMap",
+    "prepublishOnly": "tsc --project ./tsconfig-build.json  && tsc --project ./tsconfig-build.json --declaration --declarationMap ",
     "watch": "tsc --watch",
     "test": "jest"
   },
