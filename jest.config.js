@@ -1,10 +1,19 @@
+/** @type {import('ts-jest/dist/types').InitialOptionsTsJest} */
 module.exports = {
-  "notify": true,
-  "collectCoverage": true,
-  "collectCoverageFrom": [
-    "src/**/*.{js,jsx}"
+  preset: 'ts-jest',
+  testEnvironment: 'node',
+  testMatch: ["**/?(*.)+(spec|test).[jt]s?(x)"],
+  collectCoverage: true,
+  collectCoverageFrom: [
+    "**/*.{ts,js}",
+    "!**/node_modules/**",
+    "!**/coverage/**",
+    "!src/types/**",
+    "!lib/**",
+    "!jest.config.js",
+    "!.yalc/**",
+    "!__tests__/**",
   ],
-  "coveragePathIgnorePatterns": ["__tests__", "jest.config.js", "/node_modules/", "/old/", "/coverage/", "gulpfile.js"],
-  "testEnvironment": "node",
-  "testMatch": ["**/__tests__/**/*.test.[jt]s?(x)"]
+  coveragePathIgnorePatterns: ["/node_modules/"],
+
 };

@@ -1,5 +1,5 @@
 import Sequelize, {Op} from "sequelize";
-
+import { SequelizeDefinition } from '../../../src/types/index';
 export default {
   name: "TaskItem",
   define: {
@@ -64,23 +64,23 @@ export default {
   options: {
     tableName: "task-items",
     instanceMethods: {
-      testInstanceMethodArray(args, {instance}) {
+      testInstanceMethodArray(args: any, {instance}: any) {
         return instance.models.TaskItem.findAll();
       },
-      testInstanceMethodSingle(args, {instance}) {
+      testInstanceMethodSingle(args: any, {instance}: any) {
         return instance.models.TaskItem.findOne({where: {id: 1}});
       },
     },
     classMethods: {
-      getTaskItemsArray(args, {instance}) {
+      getTaskItemsArray(args: any, {instance}: any) {
         return instance.models.TaskItem.findAll();
       },
-      getTaskItemsSingle(args, {instance}) {
+      getTaskItemsSingle(args: any, {instance}: any) {
         return instance.models.TaskItem.findOne({where: {id: 1}});
       },
     },
     hooks: {
-      beforeFind(options = {}) {
+      beforeFind(options: any = {}) {
         if (options.getGraphQLArgs) {
           const graphqlArgs = options.getGraphQLArgs();
           if (graphqlArgs.info.rootValue) {
@@ -96,13 +96,13 @@ export default {
         }
         return options;
       },
-      beforeCreate(instance, options, cb) {
+      beforeCreate(instance: any, options: any, cb: any) {
         return undefined;
       },
-      beforeUpdate(instance, options, cb) {
+      beforeUpdate(instance: any, options: any, cb: any) {
         return undefined;
       },
-      beforeDestroy(instance, options, cb) {
+      beforeDestroy(instance: any, options: any, cb: any) {
         return undefined;
       },
     },
@@ -110,4 +110,4 @@ export default {
       {unique: true, fields: ["name"]},
     ],
   },
-};
+} as SequelizeDefinition;

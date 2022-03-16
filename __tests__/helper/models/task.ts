@@ -10,6 +10,7 @@ import {
 } from "graphql";
 
 import events from "../events";
+import { SequelizeDefinition } from '../../../src/types/index';
 
 
 function delay(ms = 1) {
@@ -47,7 +48,7 @@ export default {
       allowNull: true,
     },
   },
-  before(req) {
+  before(req: any) {
     if (req.type === events.MUTATION_CREATE) {
       return Object.assign({}, req.params, {
         mutationCheck: "create",
@@ -60,7 +61,7 @@ export default {
     }
     return req.params;
   },
-  after(req) {
+  after(req: any) {
     return req.result;
   },
   override: {
@@ -72,10 +73,10 @@ export default {
           hidden2: {type: GraphQLString},
         },
       },
-      output(result, args, context, info) {
+      output(result: any, args: any, context: any, info: any) {
         return JSON.parse(result.get("options"));
       },
-      input(field, args, context, info, model) {
+      input(field: any, args: any, context: any, info: any, model: any) {
         if (model) {
           const currOpts = model.get("options");
           if (currOpts) {
@@ -88,10 +89,10 @@ export default {
     },
     options2: {
       type: GraphQLString,
-      output(result, args, context, info) {
+      output(result: any, args: any, context: any, info: any) {
         return JSON.parse(result.get("options2"));
       },
-      input(field, args, context, info, model) {
+      input(field: any, args: any, context: any, info: any, model: any) {
         return JSON.stringify(field);
       },
     },
@@ -120,7 +121,7 @@ export default {
     },
   }],
   whereOperators: {
-    async hasNoItems(newWhere, findOptions) {
+    async hasNoItems(newWhere: any, findOptions: any) {
       const {context} = findOptions;
       return {
         id: {
@@ -128,7 +129,7 @@ export default {
         }
       };
     },
-    async chainTest(newWhere, findOptions) {
+    async chainTest(newWhere: any, findOptions: any) {
       return {
         hasNoItems: true
       };
@@ -211,13 +212,13 @@ export default {
     tableName: "tasks",
     // paranoid: true,
     classMethods: {
-      reverseName({input: {amount}}, req) {
+      reverseName({input: {amount}}: any, req: any) {
         return {
           id: 1,
           name: `reverseName${amount}`,
         };
       },
-      reverseNameArray(args, req) {
+      reverseNameArray(args: any, req: any) {
         return [{
           id: 1,
           name: "reverseName4",
@@ -226,20 +227,20 @@ export default {
           name: "reverseName3",
         }];
       },
-      async getHiddenData(args, req) {
+      async getHiddenData(args: any, req: any) {
         await delay();
         return {
           hidden: "Hi",
         };
       },
-      getHiddenData2(args, req) {
+      getHiddenData2(args: any, req: any) {
         return {
           hidden: "Hi2",
         };
       },
     },
     instanceMethods: {
-      testInstanceMethod({input: {amount}}, req) {
+      testInstanceMethod(this: any, {input: {amount}}: any, req: any) {
         return [{
           id: this.id,
           name: `${this.name}${amount}`,
@@ -247,21 +248,21 @@ export default {
       },
     },
     hooks: {
-      beforeFind(options) {
+      beforeFind(options: any) {
         return options;
       },
-      beforeCreate(instance, options) {
+      beforeCreate(instance: any, options: any) {
         return instance;
       },
-      beforeUpdate(instance, options) {
+      beforeUpdate(instance: any, options: any) {
         return instance;
       },
-      beforeDestroy(instance, options) {
+      beforeDestroy(instance: any, options:any ) {
         return instance;
       },
     },
     indexes: [
       // {unique: true, fields: ["name"]},
     ],
-  },
+  } as SequelizeDefinition,
 };

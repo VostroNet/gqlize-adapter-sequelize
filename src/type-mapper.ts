@@ -39,7 +39,7 @@ import uploadType from "@vostro/graphql-types/lib/upload";
 
 import {capitalize} from "./utils/word";
 
-export default function typeMapper(type, modelName, fieldName) {
+export default function typeMapper(type: any, modelName: any, fieldName: any) {
   return toGraphQL(type, Sequelize, modelName, fieldName);
 }
 
@@ -50,7 +50,7 @@ export default function typeMapper(type, modelName, fieldName) {
  * @param  {Object} sequelizeTypes
  * @return {Function} GraphQL type declaration
  */
-export function toGraphQL(sequelizeType, sequelizeTypes, modelName, fieldName) {
+export function toGraphQL(sequelizeType: any, sequelizeTypes: any, modelName?: string, fieldName?: string): any {
   const {
     BOOLEAN,
     ENUM,
@@ -128,7 +128,7 @@ export function toGraphQL(sequelizeType, sequelizeTypes, modelName, fieldName) {
   }
 
   if (sequelizeType instanceof ENUM) {
-    let values = sequelizeType.values.reduce((o, k) => {
+    let values = sequelizeType.values.reduce((o: { [x: string]: { value: any; }; }, k: any) => {
       o[sanitizeEnumValue(k)] = {
         value: k,
       };
@@ -158,12 +158,12 @@ export function toGraphQL(sequelizeType, sequelizeTypes, modelName, fieldName) {
       sequelizeType.toSql()} to a GraphQL type`
   );
 
-  function sanitizeEnumValue(value) {
+  function sanitizeEnumValue(value: string) {
     return value
       .trim()
-      .replace(/([^_a-zA-Z0-9])/g, (_, p) => specialCharsMap.get(p) || " ")
+      .replace(/([^_a-zA-Z0-9])/g, (_: any, p: string) => specialCharsMap.get(p) || " ")
       .split(" ")
-      .map((v, i) => (i ? capitalize(v) : v))
+      .map((v: string | undefined, i: any) => (i ? capitalize(v) : v))
       .join("")
       .replace(/(^\d)/, "_$1");
   }
