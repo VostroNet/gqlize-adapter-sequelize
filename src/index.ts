@@ -70,10 +70,12 @@ export default class SequelizeAdapter implements GqlizeAdapter {
     this.meta = {};
   }
   initialise = async () => {
-    await this.getORM().sync();
     if (this.startup.create !== "") {
       await this.getORM().query(this.startup.create);
     }
+  };
+  sync = async () => {
+     await this.getORM().sync();
   };
   reset = async () => {
     if (this.startup.drop !== "") {
