@@ -499,7 +499,10 @@ export default class SequelizeAdapter implements GqlizeAdapter {
     }
     return [this.sequelize.models[modelName].primaryKeyAttribute];
   };
-  getValueFromInstance(data: { [x: string]: any }, keyName: string | number) {
+  getValueFromInstance(data: any, keyName: string | number) {
+    if (data.dataValues) {
+      return data.dataValues[keyName];
+    }
     return data[keyName];
   }
   getFilterGraphQLType = (defName: any, definition: any) => {
