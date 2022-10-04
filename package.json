@@ -44,5 +44,7 @@
     "graphql-relay": "^0.10.0",
     "sequelize": "^6.19.0"
   },
-  "dependencies": {}
+  "dependencies": {
+    "@vostro/object-visit": "^1.0.1"
+  }
 }
