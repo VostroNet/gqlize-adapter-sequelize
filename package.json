@@ -1,6 +1,6 @@
 {
   "name": "@vostro/gqlize-adapter-sequelize",
-  "version": "5.1.1",
+  "version": "5.3.0",
   "description": "Sequelize adapter for the data binding library - gqlize",
   "main": "lib/index.js",
   "scripts": {
