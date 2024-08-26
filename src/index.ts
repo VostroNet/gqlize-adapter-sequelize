@@ -74,14 +74,14 @@ export default class SequelizeAdapter implements GqlizeAdapter {
       await this.getORM().query(this.startup.create);
     }
   };
-  sync = async () => {
-     await this.getORM().sync();
+  sync = async (options?: any) => {
+     await this.getORM().sync(options);
   };
-  reset = async () => {
+  reset = async (options?: any) => {
     if (this.startup.drop !== "") {
       await this.getORM().query(this.startup.drop);
     }
-    await this.getORM().sync({ force: true });
+    await this.getORM().sync({ force: true, ...(options || {}) });
     if (this.startup.create !== "") {
       await this.getORM().query(this.startup.create);
     }
@@ -294,7 +294,7 @@ export default class SequelizeAdapter implements GqlizeAdapter {
         }
       });
     }
-    this.sequelize.models[newDef.name].prototype.Model = this.sequelize.models[
+    (this.sequelize.models[newDef.name].prototype as any).Model = this.sequelize.models[
       newDef.name
     ];
     // (this.sequelize.models[newDef.name] as any)._gqlmeta = {};
@@ -615,7 +615,7 @@ export default class SequelizeAdapter implements GqlizeAdapter {
       dialect === "postgres" || dialect === "mssql" || dialect === "sqlite"
     );
   };
-  getInlineCount = (values: any[]) => {
+  getInlineCount = async(values: any[]) => {
     let fullCount =
       values[0] &&
       (values[0].dataValues || values[0]).full_count &&

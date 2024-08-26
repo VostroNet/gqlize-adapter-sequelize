@@ -4,6 +4,10 @@ import TaskModel from "./helper/models/task";
 import TaskItemModel from "./helper/models/task-item";
 import waterfall from "../src/utils/waterfall";
 import Sequelize from "sequelize";
+
+
+import { describe, expect, it } from "@jest/globals";
+
 // import jsonType from "@vostro/graphql-types/lib/json";
 // import { SequelizeDefinition } from '../lib/types/index';
 // import { Association } from "@vostro/gqlize/lib/types";

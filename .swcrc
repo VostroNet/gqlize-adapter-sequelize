@@ -1,0 +1,14 @@
+{
+  "$schema": "https://swc.rs/schema.json",
+  "exclude": "node_modules/",
+  "jsc": {
+    "target": "esnext",
+    "parser": {
+      "syntax": "typescript"
+    }
+  },
+  "module": {
+    "type": "commonjs",
+    "lazy": true
+  }
+}

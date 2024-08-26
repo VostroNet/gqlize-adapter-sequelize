@@ -1,0 +1,28 @@
+{
+  "extends": "@tsconfig/node20/tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ESNext"],
+    "module": "CommonJS",
+    "target": "ES2022",
+    "outDir": "cjs",
+    "moduleResolution": "Node",
+    "moduleDetection": "force",
+    "allowImportingTsExtensions": false,
+    "noEmit": false,
+    "composite": false,
+    "strict": false,
+    "downlevelIteration": true,
+    "skipLibCheck": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "types": [
+      "@types/node" // add Bun global
+    ],
+    "sourceMap": true,
+    "declaration": false,
+    "esModuleInterop": true
+  },
+
+  "include": ["src/**/*"],
+  "exclude": ["node_modules/**", "src/examples/**", "lib/**", "cjs/**", "types/**"]
+}

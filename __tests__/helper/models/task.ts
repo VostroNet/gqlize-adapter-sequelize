@@ -19,7 +19,7 @@ function delay(ms = 1) {
   });
 }
 
-export default {
+const taskModel: SequelizeDefinition = {
   name: "Task",
   define: {
     name: {
@@ -266,3 +266,6 @@ export default {
     ],
   } as SequelizeDefinition,
 };
+
+
+export default taskModel;

@@ -1,16 +1,31 @@
 {
-  "extends": "@tsconfig/node16/tsconfig.json",
+  "extends": "@tsconfig/node20/tsconfig.json",
   "compilerOptions": {
-    "moduleResolution": "node",
-    "module": "CommonJS",
-    "noImplicitAny": true,
-    "removeComments": true,
-    "preserveConstEnums": true,
+    "lib": ["ESNext"],
+    "module": "Preserve",
+    "target": "ESNext",
+    "moduleResolution": "Bundler",
+    "moduleDetection": "force",
+    "allowImportingTsExtensions": false,
+    "noEmit": false,
+    "composite": false,
+    "strict": false,
+    // "downlevelIteration": true,
+    "skipLibCheck": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "esModuleInterop": true,
+    "types": ["@types/node"],
+
     "outDir": "lib/",
     "sourceMap": true,
-    
+    "declaration": true,
+    // "isolatedModules": true,
+    // "importsNotUsedAsValues": "remove",
+    // "importHelpers": true
   },
-  "include": ["src/**/*", "__tests__/**/*"],
+  
+  "include": ["src/**/*"],
   "exclude": ["node_modules", "**/*.spec.ts", "lib"],
   "watchOptions": {
     // Use native file system events for files and directories
@@ -20,11 +35,9 @@
     // when they're updated a lot.
     "fallbackPolling": "dynamicPriority",
     // Don't coalesce watch notification
-    "synchronousWatchDirectory": true,
+    "synchronousWatchDirectory": true
     // Finally, two additional settings for reducing the amount of possible
     // files to track  work from these directories
     // "excludeFiles": ["node_modules/**/*", "lib/**/*"]
-
-    
   }
 }

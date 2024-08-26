@@ -6,6 +6,7 @@ export interface SequelizeDefinition extends Definition {
   tableName?: string;
   disablePrimaryKey?: boolean;
   removeAttributes?: { [key: string]: string }[];
+
   // classMethods?: {
   //   [key: string]: any;// SqlClassMethod | ((args: any, context: any) => any);
   // };
