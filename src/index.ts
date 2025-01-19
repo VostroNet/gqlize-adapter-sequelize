@@ -28,7 +28,7 @@ import {
 // import {GraphQLObjectType} from "graphql";
 import { GraphQLInputObjectType } from "graphql";
 import waterfall from "./utils/waterfall";
-import { Association, GqlizeAdapter, WhereOperators, DefinitionFieldMeta } from '@vostro/gqlize/src/types';
+import { Association, GqlizeAdapter, WhereOperators, DefinitionFieldMeta } from '@azerothian/gqlize/src/types';
 import { SequelizeDefinition, SqlClassMethod } from "./types";
 import { replaceWhereOperators } from "./utils/where-ops";
 
@@ -703,13 +703,14 @@ export default class SequelizeAdapter implements GqlizeAdapter {
       }
     }
     if (args.where) {
-      where = await this.processFilterArgument(args.where, whereOperators);
+      where = await this.processFilterArgument(args.where, whereOperators, defaultOptions);
     }
     if ((args.include || []).length > 0) {
       const result = await this.processIncludeStatement(
         defName,
         args.include,
-        order
+        order,
+        defaultOptions
       );
       order = result.order;
       include = result.include;
@@ -761,7 +762,8 @@ export default class SequelizeAdapter implements GqlizeAdapter {
     defName: any,
     includeStatements: any,
     order: any,
-    parentRelsForOrder: any = []
+    options: any,
+    parentRelsForOrder: any = [],
   ) {
     let orders = order;
     const incs = await waterfall(
@@ -789,7 +791,8 @@ export default class SequelizeAdapter implements GqlizeAdapter {
               as: relName,
               where: await this.processFilterArgument(
                 inc.where || {},
-                whereOperators
+                whereOperators,
+                options
               ),
             } as any;
             if (inc.include) {
@@ -797,6 +800,7 @@ export default class SequelizeAdapter implements GqlizeAdapter {
                 (TargetModel as any).definition.name,
                 inc.include,
                 order,
+                options,
                 [...parentRelsForOrder, orderAssocPrefix]
               );
               retVal.include = v.include;
@@ -814,10 +818,10 @@ export default class SequelizeAdapter implements GqlizeAdapter {
       order: orders,
     };
   }
-  async processFilterArgument(where: any, whereOperators: any) {
+  async processFilterArgument(where: any, whereOperators: any, options: any) {
     const w = replaceWhereOperators(where);
     if (whereOperators) {
-      return replaceDefWhereOperators(w, whereOperators, {});
+      return replaceDefWhereOperators(w, whereOperators, options);
     }
     return w;
   }
@@ -913,7 +917,7 @@ export default class SequelizeAdapter implements GqlizeAdapter {
       options: any
     ) => {
       const items = await Model.findAll({
-        where: await this.processFilterArgument(where, whereOperators),
+        where: await this.processFilterArgument(where, whereOperators, options),
         ...options,
       });
       return Promise.all(
@@ -936,7 +940,7 @@ export default class SequelizeAdapter implements GqlizeAdapter {
       after: (arg0: any) => any
     ) => {
       const items = await Model.findAll({
-        where: await this.processFilterArgument(where, whereOperators),
+        where: await this.processFilterArgument(where, whereOperators, options),
         ...options,
       });
       return items.map(async (i: { destroy: (arg0: any) => any }) => {
