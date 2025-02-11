@@ -70,11 +70,12 @@ export default class SequelizeAdapter implements GqlizeAdapter {
     this.meta = {};
   }
   initialise = async () => {
+    return undefined;
+  };
+  sync = async (options?: any) => {
     if (this.startup.create !== "") {
       await this.getORM().query(this.startup.create);
     }
-  };
-  sync = async (options?: any) => {
      await this.getORM().sync(options);
   };
   reset = async (options?: any) => {
@@ -252,22 +253,30 @@ export default class SequelizeAdapter implements GqlizeAdapter {
         }
       });
     }
-    if (newDef.options) {
-      if (newDef.disablePrimaryKey) {
-        this.sequelize.models[newDef.name].removeAttribute("id");
-      }
-      if (newDef.removeAttributes) {
-        newDef.removeAttributes.forEach((attr: any) => {
-          this.sequelize.models[defName].removeAttribute(attr);
-        });
-      }
-      if (newDef.options.classMethods) {
-        classMethods = newDef.options.classMethods;
-      }
-      if (newDef.options.instanceMethods) {
-        instanceMethods = newDef.options.instanceMethods;
-      }
+
+
+
+    if (newDef.disablePrimaryKey) {
+      this.sequelize.models[newDef.name].removeAttribute("id");
     }
+    if (newDef.removeAttributes) {
+      newDef.removeAttributes.forEach((attr: any) => {
+        this.sequelize.models[defName].removeAttribute(attr);
+      });
+    }
+    if (newDef.options?.classMethods) {
+      classMethods = {
+        ...classMethods || {},
+        ...newDef.options.classMethods,
+      };
+    }
+    if (newDef.options?.instanceMethods) {
+      instanceMethods = {
+        ...instanceMethods || {},
+        ...newDef.options.instanceMethods,
+      };
+    }
+
     if (classMethods) {
       await Promise.all(
         Object.keys(classMethods).map(async (classMethod) => {
